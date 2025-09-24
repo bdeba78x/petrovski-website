@@ -148,7 +148,7 @@
             padding: 10px;
             text-align: left;
             border-bottom: 1px solid #4a4a4a;
-            transition: border-bottom 0.3s ease;
+            transition: border-bottom 0.3s ease, color 0.3s ease;
         }
         th {
             background-color: #3c3c3c;
@@ -156,9 +156,15 @@
             font-weight: 600;
             transition: background-color 0.3s ease, color 0.3s ease;
         }
+        td {
+            color: #e8ecef;
+            transition: color 0.3s ease;
+        }
+        .light-mode th, .light-mode td {
+            color: #1a1a1a;
+        }
         .light-mode th {
             background-color: #d1d5db;
-            color: #1a1a1a;
         }
         .light-mode td {
             border-bottom: 1px solid #d1d5db;
