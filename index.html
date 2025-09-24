@@ -1,0 +1,338 @@
+<script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function filledCell(cell) {
+          return cell !== '' && cell != null;
+        }
+        function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
+
+                // Convert sheet to JSON to filter blank rows
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                // Filter out blank rows (rows where all cells are empty, null, or undefined)
+                var filteredData = jsonData.filter(row => row.some(filledCell));
+
+                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
+                var headerRowIndex = filteredData.findIndex((row, index) =>
+                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
+                );
+                // Fallback
+                if (headerRowIndex === -1 || headerRowIndex > 25) {
+                  headerRowIndex = 0;
+                }
+
+                // Convert filtered JSON back to CSV
+                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+        }
+        </script><!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Збірка ПК для ДЗ</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #1a1a1a;
+            color: #e8ecef;
+            transition: background-color 0.3s, color 0.3s;
+        }
+        .light-mode {
+            background-color: #e8ecef;
+            color: #1a1a1a;
+        }
+        header {
+            position: fixed;
+            top: 0;
+            width: 100%;
+            background-color: #2c2c2c;
+            color: #e8ecef;
+            padding: 12px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+            transition: transform 0.3s ease;
+            z-index: 1000;
+        }
+        header.hidden {
+            transform: translateY(-100%);
+        }
+        header .title {
+            font-size: 1.4em;
+            font-weight: 600;
+        }
+        header .nav {
+            display: flex;
+            gap: 20px;
+        }
+        header a, header button {
+            color: #e8ecef;
+            text-decoration: none;
+            font-size: 1em;
+            background: none;
+            border: none;
+            cursor: pointer;
+            transition: color 0.2s;
+        }
+        header a:hover, header button:hover {
+            color: #a0a0a0;
+        }
+        main {
+            max-width: 850px;
+            margin: 80px auto 40px;
+            padding: 0 15px;
+        }
+        section {
+            background: #2c2c2c;
+            padding: 25px;
+            border-radius: 6px;
+            margin-bottom: 25px;
+            box-shadow: 0 1px 3px rgba(255, 255, 255, 0.1);
+        }
+        .light-mode section {
+            background: #ffffff;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+        h2 {
+            font-size: 1.5em;
+            margin-bottom: 15px;
+            color: #e8ecef;
+        }
+        .light-mode h2 {
+            color: #1a1a1a;
+        }
+        ul {
+            list-style: none;
+            padding: 0;
+            font-size: 1.05em;
+        }
+        ul li {
+            padding: 8px 0;
+            position: relative;
+        }
+        ul li::before {
+            content: '•';
+            color: #e8ecef;
+            position: absolute;
+            left: -20px;
+        }
+        .light-mode ul li::before {
+            color: #1a1a1a;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+            font-size: 0.95em;
+        }
+        th, td {
+            padding: 10px;
+            text-align: left;
+            border-bottom: 1px solid #4a4a4a;
+        }
+        th {
+            background-color: #3c3c3c;
+            color: #e8ecef;
+            font-weight: 600;
+        }
+        .light-mode th {
+            background-color: #2c2c2c;
+        }
+        .light-mode td {
+            border-bottom: 1px solid #d1d5db;
+        }
+        tr:hover {
+            background-color: #3c3c3c;
+        }
+        .light-mode tr:hover {
+            background-color: #f5f5f5;
+        }
+        .component-link {
+            color: #a0a0a0;
+            text-decoration: none;
+            cursor: pointer;
+        }
+        .component-link:hover {
+            color: #e8ecef;
+        }
+        .light-mode .component-link {
+            color: #1a1a1a;
+        }
+        .light-mode .component-link:hover {
+            color: #2c2c2c;
+        }
+        .total {
+            font-size: 1.2em;
+            font-weight: 600;
+            text-align: right;
+            margin-top: 15px;
+            color: #e8ecef;
+        }
+        .light-mode .total {
+            color: #1a1a1a;
+        }
+        footer {
+            background-color: #2c2c2c;
+            color: #e8ecef;
+            text-align: center;
+            padding: 12px;
+            font-size: 0.9em;
+        }
+        @media (max-width: 768px) {
+            header .title {
+                font-size: 1.2em;
+            }
+            header .nav {
+                gap: 10px;
+            }
+            th, td {
+                font-size: 0.85em;
+                padding: 8px;
+            }
+        }
+    </style>
+</head>
+<body class="dark-mode">
+    <header id="header">
+        <div class="title">Збірка ПК</div>
+        <div class="nav">
+            <a href="#components">Складові</a>
+            <a href="#build">Збірка</a>
+            <button id="theme-toggle">☀️</button>
+        </div>
+    </header>
+    <main>
+        <section id="components">
+            <h2>Основні складові комп'ютера</h2>
+            <ul>
+                <li><strong>Процесор (CPU)</strong>: Виконує обчислення для програм.</li>
+                <li><strong>Оперативна пам'ять (RAM)</strong>: Швидке сховище даних.</li>
+                <li><strong>Накопичувач</strong>: Зберігає ОС, програми, файли.</li>
+                <li><strong>Материнська плата</strong>: З'єднує компоненти.</li>
+                <li><strong>Блок живлення (PSU)</strong>: Живить систему.</li>
+                <li><strong>Корпус</strong>: Захищає і охолоджує.</li>
+                <li><strong>Монітор</strong>: Відображає дані.</li>
+                <li><strong>Клавіатура та миша</strong>: Для керування ПК.</li>
+            </ul>
+        </section>
+        <section id="build">
+            <h2>Бюджетна збірка до 20 000 грн</h2>
+            <p>Збірка для навчання, офісу, базових ігор. Ціни актуальні (2025, Rozetka). Вартість: <strong>19 483 грн</strong>. Сумісність: AM4, DDR4, M.2 NVMe, PSU на ~200 Вт. Швидкий SSD на 1 ТБ, 16 ГБ RAM, потрібна відеокарта (оскільки Ryzen 5 5600 без графіки).</p>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Компонент</th>
+                        <th>Модель</th>
+                        <th>Характеристики</th>
+                        <th>Чому обрано</th>
+                        <th>Ціна (грн)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><a href="https://click.ua/ru/shop/protsessor-amd-ryzen-5-5600-left-parenthesis3dot5ghz-32mb-65w-am4right-parenthesis-box-left-parenthesis100minus100000927boxright-parenthesis-p71243" target="_blank" class="component-link">Процесор</a></td>
+                        <td>AMD Ryzen 5 5600</td>
+                        <td>6 ядер, 12 потоків, 3.5-4.4 GHz, 32MB кеш, 65 Вт, AM4, без графіки</td>
+                        <td>Швидкий для багатозадачності, Zen3 архітектура, сумісний з AM4.</td>
+                        <td>4243</td>
+                    </tr>
+                    <tr>
+                        <td><a href="https://click.ua/shop/modul-pambacktickyati-ddr4-16gbslash3200-kingston-fury-beast-black-left-parenthesiskf432c16bb1slash16right-parenthesis-p28964" target="_blank" class="component-link">Оперативна пам'ять</a></td>
+                        <td>Kingston Fury Beast DDR4 16GB</td>
+                        <td>3200 МГц, CL16, 16 ГБ, DIMM</td>
+                        <td>16 ГБ для програм, XMP профіль, радіатор для охолодження.</td>
+                        <td>1703</td>
+                    </tr>
+                    <tr>
+                        <td><a href="https://hard.rozetka.com.ua/ua/kingston-snv3s-1000g/p453864368/" target="_blank" class="component-link">Накопичувач</a></td>
+                        <td>Kingston NV3 1TB</td>
+                        <td>NVMe SSD, PCIe 4.0, 3500/2800 МБ/с, M.2</td>
+                        <td>Швидка ОС (~5 сек), 1 ТБ для файлів і програм.</td>
+                        <td>2510</td>
+                    </tr>
+                    <tr>
+                        <td><a href="https://hard.rozetka.com.ua/ua/msi-b550m-pro-vdh/p443091815/" target="_blank" class="component-link">Материнська плата</a></td>
+                        <td>MSI B550M PRO-VDH</td>
+                        <td>B550, AM4, 4xDDR4, PCIe 4.0, M.2 NVMe, Wi-Fi</td>
+                        <td>Сумісна з CPU, підтримує DDR4 і SSD, Wi-Fi для зручності.</td>
+                        <td>3419</td>
+                    </tr>
+                    <tr>
+                        <td><a href="https://hard.rozetka.com.ua/ua/chieftec-gps-500a8/p393623736/" target="_blank" class="component-link">Блок живлення</a></td>
+                        <td>Chieftec GPS-500A8 500W</td>
+                        <td>500 Вт, 80+ Bronze, 20+4 pin, 4+4 CPU, 4xSATA</td>
+                        <td>Надійний, вистачає для ~200 Вт, сертифікат Bronze.</td>
+                        <td>1610</td>
+                    </tr>
+                    <tr>
+                        <td><a href="https://compx.ua/korpus-gtl-t1638-black-bez-bp-2394671/" target="_blank" class="component-link">Корпус</a></td>
+                        <td>GTL T1638 Black</td>
+                        <td>Micro-ATX, 2x3.5", 1x2.5", вентилятор</td>
+                        <td>Бюджетний, компактний, з охолодженням.</td>
+                        <td>811</td>
+                    </tr>
+                    <tr>
+                        <td><a href="https://hard.rozetka.com.ua/ua/xiaomi-ela5625eu/p457152679/" target="_blank" class="component-link">Монітор</a></td>
+                        <td>Xiaomi Gaming G24i 24"</td>
+                        <td>1920x1080 FHD, IPS, 100 Гц, 1 мс</td>
+                        <td>Чітке зображення, IPS для кольорів, 100 Гц для плавності.</td>
+                        <td>4319</td>
+                    </tr>
+                    <tr>
+                        <td><a href="https://www.itbox.ua/ua/product/Klaviatura_Logitech_K120_920-002643-p51590/" target="_blank" class="component-link">Клавіатура</a></td>
+                        <td>Logitech K120</td>
+                        <td>Мембранна, USB</td>
+                        <td>Надійна, зручна для щоденного використання.</td>
+                        <td>499</td>
+                    </tr>
+                    <tr>
+                        <td><a href="https://www.itbox.ua/ua/product/Mishka_Logitech_M100_USB_Black_910-006652-p872580/" target="_blank" class="component-link">Миша</a></td>
+                        <td>Logitech M100</td>
+                        <td>Оптична, 1000 DPI, USB</td>
+                        <td>Проста, зручна для базових задач.</td>
+                        <td>369</td>
+                    </tr>
+                </tbody>
+            </table>
+            <p class="total">Загальна вартість: 19 483 грн</p>
+        </section>
+    </main>
+    <footer>
+        <p>ДЗ з інформатики, 2025</p>
+    </footer>
+    <script>
+        const header = document.getElementById('header');
+        let lastScroll = 0;
+        window.addEventListener('scroll', () => {
+            const currentScroll = window.pageYOffset;
+            if (currentScroll > lastScroll && currentScroll > 0) {
+                header.classList.add('hidden');
+            } else if (currentScroll === 0) {
+                header.classList.remove('hidden');
+            }
+            lastScroll = currentScroll;
+        });
+        document.getElementById('theme-toggle').addEventListener('click', () => {
+            document.body.classList.toggle('dark-mode');
+            document.body.classList.toggle('light-mode');
+            document.getElementById('theme-toggle').textContent = document.body.classList.contains('dark-mode') ? '☀️' : '🌙';
+        });
+    </script>
+</body>
+</html>
